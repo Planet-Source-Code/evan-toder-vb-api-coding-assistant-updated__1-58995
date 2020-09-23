@@ -1,0 +1,1092 @@
+
+
+
+Const DT_WORDBREAK = &H10
+
+Enum TextAlign
+    DT_LEFT = &H0
+    DT_RIGHT = &H2
+    DT_CENTER = &H1
+End Enum
+
+Private Type RECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+Private dec_deskMsgRect As RECT
+Private TXT_COLOR As Long
+
+Private Declare Function SetTextColor Lib "gdi32" (ByVal hdc As Long, ByVal crColor As Long) As Long
+Private Declare Function DrawText Lib "user32" Alias "DrawTextA" (ByVal hdc As Long, ByVal lpStr As String, ByVal nCount As Long, lpRect As RECT, ByVal wFormat As Long) As Long
+Private Declare Function GetWindowDC Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function InvalidateRect Lib "user32.dll" (ByVal hwnd As Long, lpRect As RECT, ByVal bErase As Long) As Long
+Private Declare Function SetRect Lib "user32" (lpRect As RECT, ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As Long
+ 
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |draw simple text message to the screen/desktop
+'----------------------------------------------------------------------
+Sub DrawTextToScreen(sDeskMsg$, iTextLeft%, iTextRight%, iTextTop%, iTextBottom%, _
+                                  Optional TXT_ALIGN As TextAlign = DT_CENTER, _
+                                  Optional TxtColor& = vbBlack)
+
+'VARIABLES:
+      Dim DeskDc&
+'CODE:
+      'erase text before drawing new
+      Call EraseTextDrawnToScreen
+      DoEvents
+      'desktop pallette
+      DeskDc = GetWindowDC(0)
+      'set the textcolor
+      SetTextColor DeskDc, TxtColor
+      'rectangle where we draw the text
+      SetRect dec_deskMsgRect, (iTextLeft% / Screen.TwipsPerPixelX), _
+                              (iTextTop% / Screen.TwipsPerPixelY), _
+                              (iTextRight% / Screen.TwipsPerPixelX), _
+                              (iTextBottom% / Screen.TwipsPerPixelY)
+       'print info text to screen
+      DrawText DeskDc, sDeskMsg, Len(sDeskMsg), _
+                              dec_deskMsgRect, _
+                              DT_WORDBREAK Or TXT_ALIGN
+'END CODE:
+
+End Sub
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |erase that message by invalidating whats inside rect
+'----------------------------------------------------------------------
+Sub EraseTextDrawnToScreen()
+'
+       InvalidateRect 0, dec_deskMsgRect, True
+End Sub
+
+menucaption: Simple Text to Screen
+
+
+
+
+
+
+
+ 
+Declare Function GetMenu Lib "user32" (ByVal hwnd As Long) As Long
+Declare Function GetSubMenu Lib "user32" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |
+'----------------------------------------------------------------------
+Sub Menu(YourFormsHwnd&, mnuIndex&)
+'
+'VARIABLES:
+  Dim mnuTopHwnd&, mnuSubHwnd&
+        
+'CODE:
+        'forms handle
+        mnuTopHwnd = GetMenu(YourFormsHwnd&)
+        
+        'submenu
+        mnuSubHwnd = GetSubMenu(mnuTopHwnd, mnuIndex&)
+'END CODE:
+
+End Sub
+
+menucaption: Menu Handling Shell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |
+'---------------------------------------------------------------------- 
+Sub ToggleMenuOn(MenuNameCheck As Menu, ParamArray MenuNamesUncheck())
+'VARIABLES:
+   Dim i%
+ 'CODE:  
+       ' untoggle items in menuNameUnchecked
+       For i = 0 To UBound(MenuNamesUncheck)
+             MenuNamesUncheck(i).Checked = False
+       Next i
+       
+       ' toggle menu item on
+       MenuNameCheck.Checked = True
+'END CODE:
+End Sub
+
+menucaption: Check/Uncheck Menu Items
+
+
+
+
+
+
+
+ 
+Public Enum enCtlAction
+        Enable_Disable = 0
+        Show_Hide = 1
+End Enum
+
+
+
+'----------------------------------------------------------------------
+'   INPUTS: | NONE
+'  RETURNS: | NONE
+' COMMENTS: | to enable/disable or show/hide a group of
+'             controls at once with a single line code
+'----------------------------------------------------------------------
+Public Sub Show_EnableControls(What As enCtlAction, bTrue As Boolean, ParamArray CtlNames())
+
+'VARIABLES:
+   Dim i%
+'CODE:
+       For i = LBound(CtlNames) To UBound(CtlNames)
+          If What = Enable_Disable Then
+               CtlNames(i).Enabled = bTrue
+          Else
+               CtlNames(i).Visible = bTrue
+          End If
+       Next i
+'END CODE:
+End Sub
+
+menucaption: Enable/Disable Show/Hide Control Group
+
+
+
+
+
+
+
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |sPath:path to the file that holds variabled for our program
+'  RETURNS: |
+' COMMENTS: |
+'----------------------------------------------------------------------
+Function func_FileLoadData(sPath As String) As Variant()
+'VARIABLES:
+   Dim s$
+   Dim fFile%, i%
+   Dim arr()   As Variant
+'CODE:
+   
+      fFile = FreeFile
+  '!!!#### IMPORTANT !!! : The first time the person runs the prog,
+ '                         the file to load has not yet been created.
+ '      YOU MUST:
+ '                   1)hand create the file, which gives
+ '                      you the flexibility of presetting prog
+ '                      defaults to whatever you wish
+ '         OR:
+ '                   2)user error handling in this sub, using
+ '                     API call "CreateFile"
+ '                     (in the "API miscellaneous" menu)
+ '                     followed by  "exit sub"
+      Open sPath For Input As #fFile
+             Do Until EOF(fFile)
+                Input #fFile, s
+                ReDim Preserve arr(i)
+                arr(i) = s
+                i = (i + 1)
+            Loop
+      Close fFile
+      
+      func_FileLoadData = arr
+'END CODE:
+      
+      'SAMPLE USEAGE___________________________
+      'say your program has two variable values
+      'you want filled from file(bTimerEnabled, intTimerCount)
+               ':
+      'Private Sub Form_Load_____________________
+       ' Dim arr()   As Variant
+       ' Dim i       as integer
+       '
+       '  arr = func_FileLoadData("strWhateverPathYouWant")
+       '
+       '  For i = LBound(arr) To UBound(arr)
+       '      Select Case i
+       '          Case Is = 0
+       '                bTimerEnabled = Cbool(arr(i))
+       '          Case =1
+       '                intTimerCount = Cint(arr(i))
+       '      End Select
+       '  Next i
+       'End Sub____________________________________
+End Function
+ 
+menucaption: File Load Data
+
+
+
+
+
+
+
+ 
+'----------------------------------------------------------------------
+'   INPUTS: |sPath: path saving program data to
+'            varVals: the array of program variables your saving to file
+'  RETURNS: |
+' COMMENTS: |
+'----------------------------------------------------------------------
+Sub sub_FileSaveData(sPath As String, ParamArray varVals())
+'VARIABLES:
+  Dim fFile%, i%
+'CODE:
+      fFile = FreeFile
+      
+      Open sPath For Output As #fFile
+           'each variable value to be saved
+           '(varVals) saved on its own line
+           For i = 0 To UBound(varVals)
+               Write #fFile, varVals(i)
+           Next i
+      Close fFile
+'END CODE:
+      'SAMPLE USAGE__________________________
+           'say you have two variables from
+           'your program you want to filesave
+              'bTimerEnabled
+              'intTimerCount
+              ':
+      'Private Sub Form_Unload ____________________
+      '
+      '   call sub_FileSaveData("strWhateverPathYouWant", _
+      '                        bTimerEnabled, intTimerCount)
+      'End Sub_____________________________________
+End Sub
+
+menucaption: File Save Data
+
+
+
+
+
+
+
+
+Const GWL_EXSTYLE = -20
+Const WS_EX_STATICEDGE = &H20000
+Const WS_EX_CLIENTEDGE = &H200&
+
+Declare Function SetWindowPos Lib "user32.dll" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Declare Function GetWindowLong Lib "user32.dll" Alias "GetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
+Declare Function SetWindowLong Lib "user32.dll" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+
+
+'----------------------------------------------------------------------
+'   INPUTS: | handle to the window to flatten
+'  RETURNS: | NONE
+' COMMENTS: | flatten control or form
+'----------------------------------------------------------------------
+Sub Flatten(lhWnd&)
+'VARIABLES:
+  Dim lngStyle&
+'CODE:
+         lngStyle = GetWindowLong(hwnd, GWL_EXSTYLE)
+         lngStyle = (lngStyle And Not WS_EX_CLIENTEDGE Or WS_EX_STATICEDGE)
+         SetWindowLong hwnd, GWL_EXSTYLE, lngStyle
+         SetWindowPos hwnd, 0, 0, 0, 0, 0, _
+                   &H1 Or &H2 Or &H4 Or &H20
+'END CODE:
+End Sub
+
+menucaption: Flatten Control
+
+
+
+
+
+
+
+Declare Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) As Integer
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: | boolean..true if the key specified is toggled on)
+' COMMENTS: | determine if a keys state is down(includes mouse downs)
+'----------------------------------------------------------------------
+Private Function funcKeyTrue(VirtualKey As Integer) As Boolean
+  On Error GoTo ERR:
+'CODE:
+         If GetKeyState(VirtualKey) = -127 Or _
+            GetKeyState(VirtualKey) = -128 Then
+            
+                  funcKeyTrue = True
+         End If
+'END CODE:
+Exit Function
+ERR:
+   If ERR.Number <> 0 Then
+       MsgBox ERR.Number & vbCrLf & ERR.Description
+   End If
+End Function
+
+menucaption: Keypress/Mousestate Detect
+
+
+
+
+
+
+
+
+Const WM_SYSCOMMAND As Long = &H112
+
+Declare Function ReleaseCapture Lib "user32.dll" () As Long
+Declare Function SendMessage Lib "user32.dll" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+
+
+
+'----------------------------------------------------------------------
+'   INPUTS: | NONE
+'  RETURNS: | STRING
+' COMMENTS: | holds the code related to moving controls
+'----------------------------------------------------------------------
+Sub mod_Move(lhWnd&)
+'CODE:
+        ReleaseCapture
+        SendMessage lhWnd, WM_SYSCOMMAND, &HF012&, 0&
+'END CODE:
+End Sub
+
+menucaption: Move Controls/Form
+
+
+
+
+
+
+
+ 
+ 'PRIORITY PROCESS RELATED
+Public Enum enumPriorityLevel
+       THREAD_PRIORITY_ABOVE_NORMAL = 1
+       THREAD_PRIORITY_NORMAL = 0
+       THREAD_PRIORITY_BELOW_NORMAL = -1
+End Enum
+
+Public Const HIGH_PRIORITY_CLASS = &H80
+Public Const NORMAL_PRIORITY_CLASS = &H20
+Public Const IDLE_PRIORITY_CLASS = &H40
+
+Declare Function GetCurrentProcess Lib "kernel32" () As Long
+Declare Function GetCurrentThread Lib "kernel32" () As Long
+Declare Function GetThreadPriority Lib "kernel32" (ByVal hThread As Long) As Long
+Declare Function SetThreadPriority Lib "kernel32" (ByVal hThrad As Long, ByVal nPriority As Long) As Long
+Declare Function SetPriorityClass Lib "kernel32" (ByVal hProcess As Long, ByVal dwPriorityClass As Long) As Long
+
+
+'----------------------------------------------------------------------
+'   INPUTS: | NONE
+'  RETURNS: | STRING
+' COMMENTS: | set the priority of current thread..good for do loop control
+'----------------------------------------------------------------------
+Function SetAThreadsPriority(PriorityLevel As enumPriorityLevel, _
+                              Optional WhichProcess$ = "this", _
+                              Optional lngThread&, _
+                              Optional lngProcess&) As Long
+'VARIABLES:
+    Dim hThread&, hProcess&, PriorityClass&
+'CODE:
+       If PriorityLevel = THREAD_PRIORITY_ABOVE_NORMAL Then
+              PriorityClass = HIGH_PRIORITY_CLASS
+       ElseIf PriorityLevel = THREAD_PRIORITY_NORMAL Then
+              PriorityClass = NORMAL_PRIORITY_CLASS
+       ElseIf PriorityLevel = THREAD_PRIORITY_BELOW_NORMAL Then
+              PriorityClass = IDLE_PRIORITY_CLASS
+       End If
+        
+      If WhichProcess = "this" Then
+        'retrieve the current thread and process
+         hThread = GetCurrentThread
+         hProcess = GetCurrentProcess
+      Else
+         'get thread and process to other app specified
+         hThread = lngThread
+         hProcess = lngProcess
+      End If
+      '
+      SetThreadPriority hThread, CLng(PriorityLevel)
+      SetPriorityClass hProcess, PriorityClass
+      '
+      'verify the priority was set the way you want by setting
+      'value this function to the return val of getthreadpriority
+      SetAThreadsPriority = GetThreadPriority(hThread)
+'END CODE:
+End Function
+
+menucaption: Set Thread Priority
+
+
+
+
+
+
+
+
+Declare Function SetWindowPos Lib "user32.dll" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+
+
+'----------------------------------------------------------------------
+'   INPUTS: | Handle to the window, boolean value OnTop
+'  RETURNS: | NONE
+' COMMENTS: | this will place the specified window on top or
+'                          remove it from top
+'----------------------------------------------------------------------
+Sub WindowOnTop(lhWnd&, Optional bOnTop As Boolean = True)
+'CODE:
+      Call SetWindowPos( _
+                     lhWnd, CLng(bOnTop), 0, 0, 0, 0, _
+                     &H1 Or &H2 _
+                      )
+'END CODE:
+End Sub
+
+menucaption: Window Zorder
+
+
+
+
+
+
+
+
+ 
+Private Declare Function GetMenu Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function GetSubMenu Lib "user32" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+Private Declare Function GetMenuItemCount Lib "user32" (ByVal hMenu As Long) As Long
+Private Declare Function GetMenuString Lib "user32" Alias "GetMenuStringA" (ByVal hMenu As Long, ByVal wIDItem As Long, ByVal lpString As String, ByVal nMaxCount As Long, ByVal wFlag As Long) As Long
+Private Declare Function GetMenuItemID Lib "user32" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+Private Declare Function ModifyMenu Lib "user32" Alias "ModifyMenuA" (ByVal hMenu As Long, ByVal nPosition As Long, ByVal wFlags As Long, ByVal wIDNewItem As Long, ByVal lpString As Any) As Long
+ 
+ 
+Private Sub MenuIntoColumns(iSubMnuIndexNum%, iNumItemsPerColumn%)
+'VARIABLES:
+    Dim hMenu&, hSubMenu&
+    Dim mnuItemCnt&, mnuItemID&, mnuItemText$
+    Dim I%, Buffer$
+'CODE:
+    'Get the hwnd of the menu
+    hMenu = GetMenu(Me.hwnd)
+    'Get the hwnd of the submenu
+    hSubMenu = GetSubMenu(hMenu, iSubMnuIndexNum%)
+    'number of submenu items
+    mnuItemCnt = GetMenuItemCount(hSubMenu)
+    
+    'The Step is the number of items in one column
+    For I = iNumItemsPerColumn% To mnuItemCnt Step iNumItemsPerColumn%
+        Buffer = Space$(256)
+        Result = GetMenuString(hSubMenu, I - 1, Buffer, Len(Buffer), &H400&)
+        mnuItemText = Left$(Buffer, Result)
+        mnuItemID = GetMenuItemID(hSubMenu, I - 1)
+        'Modify the menu to a column menu
+        Call ModifyMenu(hSubMenu, I - 1, &H400& Or &H20&, mnuItemID, mnuItemText)
+    Next I
+'END CODE:
+End Sub
+
+menucaption: Menu Into Columns
+
+
+
+
+
+
+
+
+Const MF_BYPOSITION = &H400&
+ 
+Private Declare Function GetMenu Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function GetSubMenu Lib "user32" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+Private Declare Function SetMenuItemBitmaps Lib "user32" (ByVal hMenu As Long, ByVal nPosition As Long, ByVal wFlags As Long, ByVal hBitmapUnchecked As Long, ByVal hBitmapChecked As Long) As Long
+ 
+
+Private Sub AddBitmapToMenu(iSubMnuIndex%, iMnuPos%, _
+                      imgChecked As Picture, imgUnchecked As Picture)
+'VARIABLES:
+    Dim hMenu&, hSubMenu&
+'CODE:
+    'Get the hwnd of the menu
+    hMenu = GetMenu(Me.hwnd)
+    'Get the hwnd of the submenu
+    hSubMenu = GetSubMenu(hMenu, iSubMnuIndex%)
+    'Apply the pictures to the menu items to make them look better
+    Call SetMenuItemBitmaps(hSubMenu, iMnuPos%, MF_BYPOSITION, _
+                     imgUnchecked, imgChecked)
+'END CODE:
+End Sub
+
+menucaption: Menu Item Bitmaps
+
+
+
+
+'FIND POSITIOIN NUMBER OF OCCURRENCES OF STRING WITHING ANOTHER STRING
+'----------------------------------------------------------------------
+'   INPUTS: |strToCheck$: the string to check
+'            strSought$: the chr, word, or phrase to find
+'            iStartPos%: what position in strToCheck to start search
+
+'  RETURNS: |Array..index 0 is always the number of occurrences found
+'            every index after that is the position(integer) of each
+'            occurrence
+
+' COMMENTS: |how to use:
+'            dim iarr() as integer, i%
+'               '[redimension arr to number return by first index of function]
+'               '[which will always be the number of occurences found]
+'               '[index 1-ubound is going to be the actual occurence position]
+'               '[transfer elements of function array to iarr
+'            iarr =func_strOccurrCount(str1,str2)
+'               '[you can now loop through elements]
+'            for i% = 1 to ubound(ubound)
+'                 '[the occurrence position]
+'                 doWhateverWith iarr(i%)
+'            next i%
+'----------------------------------------------------------------------
+Function func_strOccurrCount(strToCheck$, strSought$, _
+                                          Optional iStartPos% = 1, _
+                                          Optional bCaseSens As Boolean = False _
+                                          ) As Long()
+'VARIBLES:
+Dim iPos%, iWrdCnt%, lArr() As Long
+
+On Error GoTo ERR:
+  
+'CODE:
+  iPos = -1
+  
+  'If search is case IN sensitive
+  'the lCase everything
+  If bCaseSens = False Then
+      strToCheck$ = LCase(strToCheck$)
+      strSought$ = LCase(strSought$)
+  End If
+  
+  'find strSought$
+  Do Until iPos = 0
+    iPos% = InStr(iStartPos%, strToCheck$, strSought$)
+    'occurence not found so exit
+    If iPos% = 0 Then
+        Exit Do
+    End If
+    
+    ReDim Preserve lArr(iWrdCnt%)
+    lArr(iWrdCnt%) = iPos%
+    iWrdCnt% = (iWrdCnt% + 1)
+    iStartPos% = (iPos% + 1)
+    DoEvents
+  Loop
+ 
+  func_strOccurrCount = lArr
+  RaiseEvent Done
+'END CODE:
+
+'error handler
+PROC_EXIT:
+  Exit Function
+  
+ERR:
+  MsgBox "Error: " & ERR.Number & ". " & ERR.Description, , "func_strOccurrenceCount"
+  Resume PROC_EXIT
+End Function
+
+
+
+menucaption: Find String within String
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |works just like instr with these exceptions:
+'            finish&  default = -1 means search to the end of
+'            strSearching$, which is the default
+'            sRepace: if a string value is specified, if a
+'            pattern match to strLike is found, the value is
+'            replaced with the value specified in sReplace
+'
+' Example use:
+'    from calling sub
+'         dim arr() as long
+'         dim i as integer
+'         arr = instr_Like(1, txt.Text, Trim(txtLike.Text), , False)
+'         for i = 0 to ubound(arr)
+'             msgbox arr(i)
+'         next i
+'----------------------------------------------------------------------
+Public Function instr_Like(start&, strSearching$, strLike$, _
+                                         Optional finish& = -1, _
+                                         Optional bFindAll As Boolean = False _
+                                         ) As Long()
+  On Error GoTo ERR:
+'VARIABLES:
+   Dim l&, strLikeLen&
+   Dim sInspect$
+   Dim iCnt%
+   Dim bArrInited As Byte
+   Dim arr() As Long
+'CODE:
+   strLikeLen& = Len(strLike)
+   
+   'calc last pos in strSearching to
+   'execute Mid() function for finding match
+   If finish = -1 Then
+       Dim s1&, s2&
+       s1& = Len(strSearching$)
+       s2& = Len(strLike$)
+       finish& = (s1& - s2&) + 1
+   End If
+   
+   'use mid function along with "Like"
+   'comparison operator to look for str match
+   For l& = start& To finish&
+      sInspect$ = Mid(strSearching$, l&, strLikeLen&)
+      
+      If sInspect$ Like strLike$ Then
+          bArrInited = 1
+          ReDim Preserve arr(iCnt%)
+          arr(iCnt%) = (l&-1)
+          'if true, we find all occurences
+          'else we exit when first match found
+          If bFindAll = False Then
+             instr_Like = arr
+             Exit Function
+          Else
+             iCnt% = (iCnt% + 1)
+          End If
+      End If
+   Next l&
+
+'if a match was never found
+'to prevent errors, assign 0 value
+'to the first index in the array
+If bArrInited = 0 Then
+   ReDim arr(0)
+   arr(0) = 0
+   instr_Like = arr
+Else
+   instr_Like = arr
+End If
+
+'END CODE:
+Exit Function
+ERR:
+   If ERR.Number <> 0 Then
+       MsgBox ERR.Number & vbCrLf & ERR.Description
+   End If
+End Function
+ 
+
+menucaption: Instr() Replacement
+
+
+
+
+
+Const LB_SETTABSTOPS = &H192
+
+
+Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+
+'----------------------------------------------------------------------
+'   INPUTS: | listbox name
+'  RETURNS: | NONE
+' COMMENTS: | creates tab stops in listbox
+'----------------------------------------------------------------------
+Sub ListBoxTabStops(LstBox as Listbox)
+  Dim tabs(1 To 2) As Long
+    
+    'sets a tabstop at 20 pixels(x) and 130(x)
+    tabs(1) = 20
+    tabs(2) = 130
+
+    ' Set the tabs.
+    SendMessage LstBox.hwnd, LB_SETTABSTOPS, 2, tabs(1)
+end sub
+
+menucaption: ListBox Tabstops
+
+
+Private Const CCHILDREN_TITLEBAR = 5
+ 
+ 'types
+Public Type RECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+
+Public Type TITLEBARINFO
+    cbSize As Long
+    rcTitleBar As RECT
+    rgstate(CCHILDREN_TITLEBAR) As Long
+End Type
+Declare Function GetTitleBarInfo Lib "user32.dll" (ByVal hwnd As Long, ByRef pti As TITLEBARINFO) As Long
+
+Function func_TitleBarHeight(lHwnd&) As Long
+ On Error GoTo ERR_HANDLER:
+'--------------------------------
+'pass a forms titlebar height
+'--------------------------------
+'VARIABLES:
+  Dim TitleInfo As TITLEBARINFO
+'CODE:
+    'Initialize structure
+    TitleInfo.cbSize = Len(TitleInfo)
+    'Retrieve information about the tilte bar of this window
+    GetTitleBarInfo Me.hwnd, TitleInfo
+ 
+    With TitleInfo.rcTitleBar
+        func_TitleBarHeight = (.Bottom - .Top)
+    End With
+'END CODE:
+exit funtion
+ERR_HANDLER:
+   Debug.Print "func_TitleBarHeight " & ERR.Description
+End Function
+
+menucaption: TitleBarHeight
+
+
+Declare Function CreateRoundRectRgn Lib "gdi32" (ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long, ByVal X3 As Long, ByVal Y3 As Long) As Long
+Declare Function SetWindowRgn Lib "user32" (ByVal hWnd As Long, ByVal hRgn As Long, ByVal bRedraw As Boolean) As Long
+
+
+Sub SetFormRgn(F As Form, twipX1&,twipY1&, twipX2&,twipY2&,CornerRoundness%)
+On Error GoTo ERR:
+'---------------------------------
+'create a forms  shape
+'---------------------------------
+'VARIABLES:
+  Dim hRgn&, pixX1&, pixY1&,pixX2&,pixY2&
+'CODE:
+  pixx1=(twipx1/sx)
+  pixY1=(twipY1/sy)
+  pixx2=(twipx2/sx)
+  pixY2=(twipY2/sy)
+
+  hRgn = CreateRoundRectRgn( pixx1, pixy1, (pixx2 / Sx), (pixy2 / Sy), _
+                                     CornerRoundness, CornerRoundness  )
+  SetWindowRgn F.hwnd, hRgn, True
+'END CODE:
+'exit sub
+ERR:
+  Debug.Print ERR.Description
+End Sub
+
+menucaption: Round Rect Region
+
+
+
+Declare Function CombineRgn Lib "gdi32" (ByVal hDestRgn As Long, ByVal hSrcRgn1 As Long, ByVal hSrcRgn2 As Long, ByVal nCombineMode As Long) As Long
+Declare Function CreateRoundRectRgn Lib "gdi32" (ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long, ByVal X3 As Long, ByVal Y3 As Long) As Long
+Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
+
+
+Private skeleton_Rgn  As Long       'holds all the rgns that will shape the form
+
+
+Sub CreateAFormRgn(rgnTwipLeft%, rgnTwipTop%, rgnTwipWid, RgnTwipHeight%, CornerRoundness%)
+On Error GoTo ERR_HANDLER:
+'---------------------------------
+'create a forms  shape
+'---------------------------------
+'VARIABLES:
+  Dim pixLeft%, pixTop&, pixWid&, pixHei&
+'CODE:
+
+  pixHei = (RgnTwipHeight / Sy)
+  
+  ReDim Preserve hRgn(iCnt)
+  
+  'convert region definitions to pixel
+  pixLeft = (rgnTwipLeft / Sx)
+  pixTop = (rgnTwipTop / Sy)
+  pixWid = (rgnTwipWid / Sx)
+  pixHei = (RgnTwipHeight / Sy)
+  
+  hRgn(iCnt) = CreateRoundRectRgn( _
+               pixLeft, pixTop, pixWid, pixHei, _
+               CornerRoundness, CornerRoundness _
+               )
+               
+  If skeleton_Rgn = 0 Then
+     skeleton_Rgn = hRgn(iCnt)
+  Else
+     Call CombineRgn(skeleton_Rgn, skeleton_Rgn, hRgn(iCnt), RGN_OR)
+    'Delete src regn to free ram
+     Call DeleteObject(hRgn(iCnt))
+  End If
+  
+  iCnt = (iCnt + 1)
+'END CODE:
+Exit Sub
+ERR_HANDLER:
+  Debug.Print ERR.Description
+End Sub
+
+Public Sub CombineTheRgns(lHwnd&)
+On Error GoTo ERR:
+'---------------------------------
+'this takes all regions defined in sub CreateAFormRgn
+' (hRgn), combines then and shapes the form
+'---------------------------------
+'VARIABLES:
+ 
+'CODE:
+  'apply the rgns to the form
+  Call SetWindowRgn(lHwnd, skeleton_Rgn, True)
+  Call DeleteObject(skeleton_Rgn)
+'END CODE:
+Exit Sub
+ERR:
+  Debug.Print ERR.Description
+End Sub
+'----------------------------
+'example usage:
+'say you have a form with a bunch of pictureboxes in an array named PicDesk
+
+  'create the regions for each "desktop"
+  For i = 0 To picDesk.UBound
+      Call modCode.CreateAFormRgn( _
+           picDesk(i).Left, picDesk(i).Top, picDesk(i).Width, _
+           (picDesk(i).Top + picDesk(i).Height), 10 _
+           )
+  Next
+  'combine the rgns and show the form defined by them
+  Call modCode.CombineTheRgns(hwnd)
+
+menucaption: Many Rgns to 1
+
+
+
+Enum cDlgShowType
+     ShowOpen
+     ShowSave
+End Enum
+
+'returns the path specified or "cancel_err" if cancel was selected(if bCancErr = True)
+Function func_cmDialogReturn(cDlg As CommonDialog, ShowType As cDlgShowType, _
+                                bCancErr As Boolean, sInitDir As String, _
+                                lngFlags As Long, ParamArray cDlgFilters()) As String
+On Error GoTo ERR_HANDLER:
+'---------------------------
+' cDlg:=      the name of your common dialog control
+' ShowType:=  selects .ShowOpen or .ShowSave
+' bCancErr:=  sets boolean state of .CancelError
+' sInitDir:= .InitDir property   example: either specify valid path
+'             or use "" or vbNull
+' lngFlags:= .Flags property     example: cdlOFNExplorer Or cdlOFNHelpButton
+'             or use 0
+'cDlgFilters:=.Filter property   example: "*.txt", "*.*"
+'---------------------------
+'VARIABLES:
+   Dim sFilters  As String
+   Dim i         As Integer
+'CODE:
+   For i = 0 To UBound(cDlgFilters) - 1
+      sFilters = (sFilters & "(" & CStr(cDlgFilters(i)) & ")|" & cDlgFilters(i)) & "|"
+   Next i
+   'add the last filter without the ending "|"
+   sFilters = (sFilters & "(" & CStr(cDlgFilters(i)) & ")|" & cDlgFilters(i))
+
+   With cDlg
+      .Filter = sFilters
+      .CancelError = bCancErr
+      'set default initial directory if its specified
+      If Len(sInitDir) > 0 Then .InitDir = sInitDir
+      'apply flags if any are specified
+      If lngFlags <> 0 Then .Flags = lngFlags
+      
+      If ShowType = ShowOpen Then
+        .ShowOpen
+      Else
+        .ShowSave
+      End If
+   
+      func_cmDialogReturn = .FileName
+   End With
+   
+'END CODE:
+Exit Function
+ERR_HANDLER:
+   If Err.Number = 32755 Then 'cancel was selected
+       func_cmDialogReturn = "cancel_err"
+   End If
+   '
+   Debug.Print "Function func_cmDialogReturn " & Err.Description
+End Function
+
+menucaption: Common Dialog Function
+
+
+Public Type RECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+
+Declare Function DrawFocusRect Lib "user32" (ByVal hdc As Long, lpRect As RECT) As Long
+Declare Function SetRect Lib "user32" (lpRect As RECT, ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As Long
+
+
+Sub FocusRect(lHdc&, twipLeft%, twipTop%, twipRight%, twipBottom%)
+'On Error Goto ERR_HANDLER:
+'---------------------------
+'
+'---------------------------
+'VARIABLES:
+  Dim pixL&, pixT&, pixR&, pixB&, sX&, sY&
+  Dim R As RECT
+'CODE:
+   sX = Screen.TwipsPerPixelX
+   sY = Screen.TwipsPerPixelY
+   pixL = (twipLeft / sX)
+   pixT = (twipTop / sY)
+   pixR = (twipRight / sX)
+   pixB = (twipBottom / sY)
+   
+   'set the rect structure
+   Call SetRect( _
+        R, pixL, pixT, pixR, pixB _
+        )
+   'draw the focus rect
+   Call DrawFocusRect( _
+        lHdc, R _
+        )
+'END CODE:
+Exit Sub
+ERR_HANDLER:
+    Debug.Print "FocusRect " & Err.Description
+End Sub
+
+
+menucaption: Draw Focus Rectangle
+
+
+  public sX&, sY&
+  Sx = Screen.TwipsPerPixelX
+  Sy = Screen.TwipsPerPixelY
+
+menucaption: sX,sY (screen,twips....)
+  
+
+Public Enum TransType
+    byColor
+    byValue
+End Enum
+
+Public Const LWA_COLORKEY = &H1
+Public Const LWA_ALPHA = &H2
+Public Const GWL_EXSTYLE = (-20)
+Public Const WS_EX_LAYERED = &H80000
+
+
+Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Declare Function SetLayeredWindowAttributes Lib "user32" (ByVal hWnd As Long, ByVal crKey As Long, ByVal bAlpha As Byte, ByVal dwFlags As Long) As Long
+
+
+Sub CreateTransparentWindowStyle(lHwnd)
+'-----------------------------------
+'this is used to create the window style needed
+'to allow transparency to be set/altered with
+'calls to SetLayeredWindowAttributes
+'-----------------------------------
+ On Error GoTo ERR_HANDLER:
+'VARIABLES:
+  Dim Ret As Long
+'CODE:
+       'Set the window style to 'Layered'
+       Ret = GetWindowLong(lHwnd, GWL_EXSTYLE)
+       Ret = Ret Or WS_EX_LAYERED
+       SetWindowLong lHwnd, GWL_EXSTYLE, Ret
+'END CODE:
+Exit Sub
+ERR_HANDLER:
+   Debug.Print "CreateTransparentWindowStyle " & ERR.Description
+End Sub
+
+Sub WindowTransparency(lHwnd&, TransparencyBy As TransType, Optional Clr As Long, _
+                                                       Optional TransVal As Long)
+On Error GoTo ERR_HANDLER:
+'---------------------------------
+'sets window transparency
+'proper window style must be set first
+'with call to CreateTransparentWindowStyle
+'that call only has to be made once for the
+'life of the form.  After that, this sub
+'may be called multiple times by itself
+'---------------------------------
+'CODE:
+    If TransparencyBy = byColor Then
+         'the color specified in Clr becomes totally transparent
+         SetLayeredWindowAttributes lHwnd, Clr, 0, LWA_ALPHA
+    ElseIf TransparencyBy = byValue Then
+         If TransVal < 0 Or TransVal > 255 Then
+            'makes sure valid transparency number chosen
+            '0=totally opaque    255= totally transparent
+            ERR.Raise 2222, "Sub WindowTransparency", _
+                    "must choose number between 0-255"
+         End If
+         SetLayeredWindowAttributes lHwnd, 0, TransVal, LWA_ALPHA
+    End If
+'END CODE:
+Exit Sub
+ERR_HANDLER:
+  Debug.Print ERR.Description
+End Sub
+
+menucaption: Window Transparency
+
+
+Sub ComboBoxAddItems(ComboBox As ComboBox, ParamArray sItems())
+On Error GoTo ERR_HANDLER:
+'-------------------------------------------------
+'simplify the process of adding lots of items to comboboxes
+'-------------------------------------------------
+'VARIABLES:
+  Dim i%
+'CODE:
+  With ComboBox
+    For i = 0 To UBound(sItems)
+       .AddItem sItems(i)
+    Next i
+  End With
+'END CODE:
+Exit Sub
+ERR_HANDLER:
+  Debug.Print Err.Description
+End Sub
+
+menucaption: ComboBox  .addItems

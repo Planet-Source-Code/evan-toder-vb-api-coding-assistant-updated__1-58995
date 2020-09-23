@@ -1,0 +1,18 @@
+#FALSE#
+#FALSE#
+#TRUE#
+3
+#FALSE#
+"D:\Program Files\Outlook Express\msimn.exe"
+""
+"a"
+"mail.optonline.net"
+"mail.optonline.net"
+""
+"a"
+"eharmony"
+"freeactivex"
+" v"
+"a"
+"11111111"
+"11111111"

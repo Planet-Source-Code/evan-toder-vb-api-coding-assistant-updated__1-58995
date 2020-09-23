@@ -1,0 +1,416 @@
+ÿ[
+
+
+Private Const WM_SYSCOMMAND As Long = &H112
+
+Private Declare Function BeginPath Lib "gdi32" (ByVal hdc As Long) As Long
+Private Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
+Private Declare Function EndPath Lib "gdi32" (ByVal hdc As Long) As Long
+Private Declare Function SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Private Declare Function PathToRegion Lib "gdi32" (ByVal hdc As Long) As Long
+Private Declare Function ReleaseCapture Lib "user32.dll" () As Long
+Private Declare Function SendMessage Lib "user32.dll" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Function SetWindowRgn Lib "user32" (ByVal hwnd As Long, ByVal hRgn As Long, ByVal bRedraw As Boolean) As Long
+Private Declare Function TextOut Lib "gdi32" Alias "TextOutA" (ByVal hdc As Long, ByVal X As Long, ByVal Y As Long, ByVal lpString As String, ByVal nCount As Long) As Long
+
+Private bDecAllowTextMove  As Boolean
+Private bDecTextFloat      As Boolean
+Private WithEvents Frm     As Form
+
+
+
+'----------------------------------------------------------------------
+'   INPUTS: |          F: formname
+'                   sMsg: text to show on screen                    |string
+'              iFontSize: size of the font                          |integer
+'              sFontType: style of font to use  i.e "Comic Sans"    |string
+'             lFontColor: color of font to use                      |long
+'             bFontBold: if the font is bold or not                 |boolean
+'            bTextFloat: places form(text) on top                   |boolean
+'        bAllowTextMove: user can drag and move the text            |boolean
+'             iTextLeft: Left starting point of the text            |integer
+'              iTextTop: Top starting point of the text             |integer
+'  RETURNS: |
+' COMMENTS: | text is printed on a form (F) and where the text is
+'             painted is recorded as the path
+'             tben the forms visible region is defined by
+'             that path
+'----------------------------------------------------------------------
+Sub ScreenMsg(F As Form, sMsg$, iFontSize%, _
+              lFontColor&, bFontBold As Boolean, _
+              bTextFloat As Boolean, bAllowTextMove As Boolean, _
+              bHollow As Boolean, iTextLeft%, iTextTop%, _
+              Optional sFontType$ = "Arial Black")
+'VARIABLES:
+    Dim hRgn&
+    
+'CODE:
+    'the font to use for the screen message
+    F.FontName = sFontType
+
+    'set dec level vars
+    bDecTextFloat = bTextFloat
+    bDecAllowTextMove = bAllowTextMove
+    
+    'font size
+    F.FontSize = iFontSize%
+    
+    'fontbold?
+    F.FontBold = bFontBold
+    
+    'set the backcolor lFontColor
+    F.BackColor = lFontColor&
+
+    'open a path bracket
+    BeginPath F.hdc
+    
+    'draw the text
+    TextOut F.hdc, 2, 15, sMsg, Len(sMsg)
+    
+    'this creates interesting hollow text effect
+    If bHollow = True Then
+         TextOut F.hdc, 4, 10, sMsg, Len(sMsg)
+    End If
+    
+    'close the path bracket
+    EndPath F.hdc
+    
+    'convert the path to a region
+    hRgn = PathToRegion(F.hdc)
+    
+    'set the Window-region
+    SetWindowRgn F.hwnd, hRgn, True
+    
+    'destroy our region
+    DeleteObject hRgn
+ 
+    'show the form
+    Load F
+
+    'form(text) position
+    F.Move iTextLeft, iTextTop
+    
+    Set Frm = F
+    
+    F.Visible = True
+ 
+    'free resources
+    Set F = Nothing
+'END CODE:
+
+End Sub
+
+ 
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |kill form reference
+'----------------------------------------------------------------------
+Private Sub Class_Terminate()
+   On Error Resume Next
+   
+       Set F = Nothing
+End Sub
+
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |if bDecAllowTextMove then  call the sub that moves form
+'----------------------------------------------------------------------
+Private Sub Frm_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)
+'
+        If bDecAllowTextMove = True Then
+           If Button = 1 Then
+              Call mod_Move(Frm.hwnd)
+           End If
+        End If
+End Sub
+ 
+ 
+'----------------------------------------------------------------------
+'   INPUTS: |
+'  RETURNS: |
+' COMMENTS: |if user want the text on top
+'            we do this in the paint instead of load because we want
+'            the message visible and on top even if a new form/app loads
+'----------------------------------------------------------------------
+Private Sub Frm_paint()
+'
+       If bDecTextFloat = True Then
+                 Call SetWindowPos( _
+                         Frm.hwnd, -1, 0, 0, 0, 0, _
+                         &H1 Or &H2)
+       End If
+End Sub
+'----------------------------------------------------------------------
+'   INPUTS: | NONE
+'  RETURNS: | STRING
+' COMMENTS: | holds the code related to moving controls
+'----------------------------------------------------------------------
+Private Sub mod_Move(lhWnd&)
+
+        ReleaseCapture
+        SendMessage lhWnd, WM_SYSCOMMAND, &HF012&, 0&
+End Sub
+ÿ่  
+Type RGB_Type
+	R As Long
+	G As Long
+	B As Long
+End Type
+
+
+Private Function ToRGB(ByVal Color As Long) As RGB_Type
+    '
+    'convert a long colorval to rgb so we can use it
+     'for painting the title bar
+    '
+    Dim ColorStr As String
+    ColorStr = Right$("000000" & Hex$(Color), 6)
+    With ToRGB
+      .R = Val("&h" & Right$(ColorStr, 2))
+      .G = Val("&h" & Mid$(ColorStr, 3, 2))
+      .B = Val("&h" & Left$(ColorStr, 2))
+    End With
+    
+End Function
+ÿ– 
+Private Declare Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+Private Declare Function WritePrivateProfileString Lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
+
+
+'the string path to the ini file where dealing with
+Public strIniFilePath As String
+'Section name of the ini file well be reading or writing to
+Public strSection As String
+
+
+'จจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจ
+'write a value to the ini file (strIniFile)
+'in the specified section (strSection)
+'จจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจ
+Public Sub WriteToINI(strKeyName As String, strKeyVal As String)
+On Error GoTo ErrHandler
+
+ Call WritePrivateProfileString(strSection, strKeyName, strKeyVal, strIniFilePath)
+ 
+Exit Sub
+ErrHandler:
+    Err.Source = Err.Source & "." & VarType(Me) & ".ProcName"
+    MsgBox Err.Number & vbTab & Err.Source & Err.Description
+    Err.Clear
+    Resume Next
+End Sub
+
+'จจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจ
+'read values from and INI file an input to variables or controls settings
+'syntax: backcolor = obj.ReadFromINI(strKeyName)
+'จจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจจ
+Public Function ReadFromINI(strKeyName As String, DefaultStringVal As String) As String
+On Error GoTo ErrHandler
+  
+  ReadFromINI = String(255, " ")
+  Call GetPrivateProfileString(strSection, strKeyName, DefaultStringVal, ReadFromINI, 255, strIniFilePath)
+  
+Exit Function
+ErrHandler:
+    Err.Source = Err.Source & "." & VarType(Me) & ".ProcName"
+    MsgBox Err.Number & vbTab & Err.Source & Err.Description
+    Err.Clear
+    Resume Next
+End Function
+\ If Not (IsNumeric(Chr$(KeyAscii))) And Not (KeyAscii = 8) Then
+    KeyAscii = 0
+ End If
+ฬPrivate function twip2PixX(twipVal&)
+    twip2PixX = (twipval/screen.twipsperpixelX)
+End function
+
+Private function twip2PixY(twipVal&)
+    twip2PixY = (twipval/screen.twipsperpixelY)
+End function
+ÿFunction FormIsLoaded(ByVal form_name As String) As Boolean
+Dim i As Integer
+
+    ' Assume we will not find it.
+    FormIsLoaded = False
+
+    ' Search the loaded forms.
+    For i = 0 To Forms.Count - 1
+        If Forms(i).Name = form_name Then
+            ' We found it. Return True
+            FormIsLoaded = True
+            Exit For
+        End If
+    Next i
+End Function
+ÿ>Declare Function OleTranslateColor Lib "OLEPRO32.DLL" (ByVal OLE_COLOR As Long, ByVal HPALETTE As Long, pccolorref As Long) As Long
+
+Function ColorToHTML(ByVal color As Long) As String
+    ' HTML color codes are in the format #RRGGBB (red, green, blue)
+    ' while Hex(color) returns numbers in the format BBGGRR
+    ' therefore we just have to invert the order of the
+    ' hex values of red and blue
+    Dim tmp As String
+    tmp = Right$("00000" & Hex$(color), 6)
+    ColorToHTML = "#" & Right$(tmp, 2) & Mid$(tmp, 3, 2) & Left$(tmp, 2)
+End Function
+
+' convert a VB color constant to a COLORREF
+' accepts both RGB() values and system color constants
+Function TranslateColor(ByVal clr As Long) As Long
+    If OleTranslateColor(clr, 0, TranslateColor) Then
+         TranslateColor = -1
+    End If
+End Function
+ÿy
+Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcA" (ByVal lpPrevWndFunc As Long, ByVal hwnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Declare Function SetClipboardViewer Lib "user32" (ByVal hwnd As Long) As Long
+ 
+Private Const GWL_WNDPROC = (-4)
+
+Dim PrevProc As Long
+
+Public Sub subclass_start(lhwnd As Long)
+
+    On Error Resume Next
+    If PrevProc = 0 Then
+       PrevProc = SetWindowLong(lhwnd, GWL_WNDPROC, AddressOf WindowProc)
+    End If
+    
+End Sub
+
+Public Sub subclass_end(lhwnd As Long)
+    
+    On Error Resume Next
+    If PrevProc <> 0 Then
+        SetWindowLong lhwnd, GWL_WNDPROC, PrevProc
+    End If
+    
+End Sub
+
+Public Function WindowProc(ByVal hwnd As Long, ByVal uMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+   
+    On Error Resume Next
+    WindowProc = CallWindowProc(PrevProc, hwnd, uMsg, wParam, lParam)
+    
+    'If uMsg =   then
+    
+    'End if
+
+End Function
+ÿl'-- check to see if item is array or array is initialized
+Function is_arr_initialized(varArray As Variant) As Boolean
+Dim Upper As Integer
+On Error Resume Next
+ 
+  Upper = UBound(varArray)
+  
+  If Err.Number Then
+     If Err.Number = 9 Then
+       is_arr_initialized = False
+     End If
+  Else
+     is_arr_initialized = True
+  End If
+
+End Function
+ÿConst WM_NCLBUTTONDOWN As Long = &HA1
+Const HTCAPTION As Long = 2
+Declare Sub ReleaseCapture Lib "User32" ()
+Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+
+
+sub MoveItem(item_hwnd as long)
+on error resume next
+    ReleaseCapture
+    SendMessage item_hwnd, WM_NCLBUTTONDOWN,  HTCAPTION, 0&
+end sub
+ÿ
+ 
+Declare Function GetWindow Lib "user32" (ByVal hwnd As Long, ByVal wCmd As Long) As Long
+Declare Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hwnd As Long, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
+Declare Function GetWindowDC Lib "user32" (ByVal hwnd As Long) As Long
+Dim m_thisHwnd As Long 'read only
+Dim m_thisDC As Long 'read only
+
+ 
+' Find the child window with class name "Shell Embedding".
+Private Sub GetWebHwnd()
+  Const GW_CHILD As Long = 5
+  Const GW_HWNDNEXT As Long = 2
+  Dim child_hwnd As Long
+  Dim class_name As String * 256
+
+  child_hwnd = GetWindow(hwnd, GW_CHILD)
+  Do
+      ' See if this is the target class.
+      GetClassName child_hwnd, class_name, 256
+      If Left$(class_name, Len("Shell Embedding")) = _
+          "Shell Embedding" Then
+          ' store the hwnd in member var
+          m_thisHwnd = child_hwnd
+          'lets get the hdc while we are at it
+          m_thisDC = GetWindowDC(m_thisHwnd)
+          Exit Do
+      End If
+
+      ' Get the next child.
+      child_hwnd = GetWindow(child_hwnd, GW_HWNDNEXT)
+   Loop While child_hwnd <> 0
+End Sub
+ÿฒDeclare Function GetMenu Lib "user32" Alias "GetMenu" (ByVal hwnd As Long) As Long
+Declare Function GetSubMenu Lib "user32" Alias "GetSubMenu" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+Declare Function GetMenuItemCount Lib "user32" Alias "GetMenuItemCount" (ByVal hMenu As Long) As Long
+Declare Function GetMenuItemID Lib "user32" Alias "GetMenuItemID" (ByVal hMenu As Long, ByVal nPos As Long) As Long
+Declare Function GetMenuString Lib "user32" Alias "GetMenuStringA" (ByVal hMenu As Long, ByVal wIDItem As Long, ByVal lpString As String, ByVal nMaxCount As Long, ByVal wFlag As Long) As Long
+Declare Function ModifyMenu Lib "user32" Alias "ModifyMenuA" (ByVal hMenu As Long, ByVal nPosition As Long, ByVal wFlags As Long, ByVal wIDNewItem As Long, ByVal lpString As Any) As Long
+
+
+Private Sub subMakeMenuColumns(mnuIndex&, mnuItemsPerColumn&)
+Dim Buffer$, mnuItemText$
+Dim i%, mnuItemCnt%
+Dim mnuItemID&, hMenu&, hSubMenu&, Result&
+ 
+    'Get the hwnd of the menu
+   hMenu = GetMenu(Me.hwnd)
+    'Get the hwnd of the submenu
+   hSubMenu = GetSubMenu(hMenu, mnuIndex)
+    'number of subitems in the menu
+   mnuItemCnt = GetMenuItemCount(hSubMenu)
+   
+   'make the API window menu 2 columns because its so long
+   For i = mnuItemsPerColumn& To mnuItemCnt Step mnuItemsPerColumn&
+        'create MT string ready for data
+        Buffer = Space$(256)
+        Result = GetMenuString(hSubMenu, (i - 1), Buffer, Len(Buffer), &H400&)
+        mnuItemText = Left$(Buffer, Result)
+        mnuItemID = GetMenuItemID(hSubMenu, (i - 1))
+        'Modify the menu to a column menu
+        Call ModifyMenu(hSubMenu, (i - 1), &H400& Or &H20&, mnuItemID, mnuItemText)
+   Next i
+   
+End Sub
+ÿ/'mod level declarations
+Declare Function BringWindowToTop Lib "user32" (ByVal hWnd As Long) As Long
+Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Const SWP_ONTOP = (&H1 Or &H2)
+
+
+'bring [hWndToLock ] window to top
+Function LockWindowToTop(hWndToLock As Long)
+   SetWindowPos hWndToLock, -1, 0, 0, 0, 0, SWP_ONTOP
+End Function
+
+
+Function UnlockWindowFromTop(hWndToUnlock, bKeepFloating As Boolean)
+'remove [hWndToUnlock] fromt he top with the option to
+'temporarily keep on top til another window gets focus
+  SetWindowPos hWndToUnlock, 1, 0, 0, 0, 0, SWP_ONTOP
+
+  If bKeepFloating Then
+     BringWindowToTop hWndToUnlock
+  End If
+
+End Function
